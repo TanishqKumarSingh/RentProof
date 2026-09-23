@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Camera, Check, ChevronRight, ChevronLeft, Loader2, Sparkles, AlertCircle, CheckCircle2 } from 'lucide-react';
 import { AVAILABLE_ROOMS, ROOM_AREAS } from '../types/inspection';
 import type { InspectionRoom, InspectionImage, AIFinding } from '../types/inspection';
-import { analyzeRoomImages, generateConditionScore } from '../services/inspectionAIService';
+import { analyzeRoomImages, generateConditionScore, isVisionAPIAvailable } from '../services/inspectionAIService';
 import { ImageUploadZone } from '../components/ai-inspection/ImageUploadZone';
 import { AnnotatedImage } from '../components/ai-inspection/AnnotatedImage';
 import { FindingCard } from '../components/ai-inspection/FindingCard';
@@ -21,6 +21,8 @@ export default function AIInspectionWizardPage() {
   const [roomsData, setRoomsData] = useState<InspectionRoom[]>([]);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [overallScore, setOverallScore] = useState<number | null>(null);
+
+  const isRealAI = isVisionAPIAvailable();
 
   // Initialize rooms data when transitioning to capture step
   const handleStartCapture = () => {
@@ -95,7 +97,18 @@ export default function AIInspectionWizardPage() {
             <ChevronLeft size={18} />
           </button>
           <div>
-            <h1 className="text-lg font-bold text-[#111827]">New AI Inspection</h1>
+            <h1 className="text-lg font-bold text-[#111827] flex items-center gap-2">
+              New AI Inspection
+              {isRealAI ? (
+                <span className="text-[10px] font-bold bg-[#ECFDF3] text-[#027A48] px-2 py-0.5 rounded-full border border-[#A6F4C5] flex items-center gap-1">
+                  <Sparkles size={10} /> Live Vision AI
+                </span>
+              ) : (
+                <span className="text-[10px] font-bold bg-[#FFFAEB] text-[#B54708] px-2 py-0.5 rounded-full border border-[#FEDF89] flex items-center gap-1">
+                  <AlertCircle size={10} /> Demo Simulation
+                </span>
+              )}
+            </h1>
             <p className="text-xs text-[#667085]">Step {step} of 4</p>
           </div>
         </div>
@@ -193,13 +206,23 @@ export default function AIInspectionWizardPage() {
               ))}
             </div>
 
-            <div className="bg-blue-50 border border-blue-100 rounded-xl p-4 flex gap-3 text-sm text-blue-900 mb-6">
-              <Sparkles className="flex-shrink-0 text-[#3157FF]" size={20} />
-              <div>
-                <p className="font-bold mb-1">AI Assistant is ready</p>
-                <p className="text-blue-700/80 leading-relaxed">Follow the checklist on the left to capture all necessary areas of the {roomsData[activeRoomIdx].name}. Once you've taken enough photos, click Analyze to let AI detect any visible issues.</p>
+            {isRealAI ? (
+              <div className="bg-blue-50 border border-blue-100 rounded-xl p-4 flex gap-3 text-sm text-blue-900 mb-6">
+                <Sparkles className="flex-shrink-0 text-[#3157FF]" size={20} />
+                <div>
+                  <p className="font-bold mb-1">Live AI Analysis Ready</p>
+                  <p className="text-blue-700/80 leading-relaxed">Follow the checklist on the left to capture all necessary areas of the {roomsData[activeRoomIdx].name}. Once you've taken enough photos, click Analyze to let Gemini Vision detect any visible issues.</p>
+                </div>
               </div>
-            </div>
+            ) : (
+              <div className="bg-[#FFFAEB] border border-[#FEDF89] rounded-xl p-4 flex gap-3 text-sm text-[#B54708] mb-6">
+                <AlertCircle className="flex-shrink-0 text-[#B54708]" size={20} />
+                <div>
+                  <p className="font-bold mb-1">Demo Simulation Mode</p>
+                  <p className="text-[#B54708]/80 leading-relaxed">Live AI analysis is not configured. Demo Simulation is currently active. Clicking analyze will return simulated realistic findings for this room instead of actually processing the image.</p>
+                </div>
+              </div>
+            )}
 
             <ImageUploadZone 
               roomName={roomsData[activeRoomIdx].name}

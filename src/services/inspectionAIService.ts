@@ -160,17 +160,35 @@ async function analyzeWithGeminiVision(
   images: { id: string; url: string; area: string }[],
 ): Promise<AIFinding[]> {
   const client = getGeminiClient();
-  if (!client) return analyzeWithMockEngine(roomName, images);
+  if (!client) {
+    console.log('[RentProof AI] Mode: DEMO');
+    console.log('[RentProof AI] Reason: GEMINI_API_KEY not configured. Falling back to mock engine.');
+    return analyzeWithMockEngine(roomName, images);
+  }
 
   const allFindings: AIFinding[] = [];
 
   for (const img of images) {
     try {
-      // Convert data URL or object URL to inline data for the API
+      console.log(`\n[RentProof AI] Mode: LIVE`);
+      console.log(`[RentProof AI] Image received: yes`);
+      
       const imageData = await urlToBase64(img.url);
-      if (!imageData) continue;
+      if (!imageData) {
+        console.warn(`[RentProof AI] Image type: invalid or unreadable. Skipping.`);
+        continue;
+      }
+      
+      console.log(`[RentProof AI] Image type: ${imageData.mimeType}`);
+      console.log(`[RentProof AI] Sending image to Gemini...`);
 
-      const prompt = `You are an AI property inspector analyzing a photograph of a ${roomName} (area: ${img.area}).
+      const prompt = `You are RentProof AI, a strict visual inspection assistant analyzing a photograph of a ${roomName} (area: ${img.area}).
+
+CRITICAL INSTRUCTION:
+You must ONLY report issues that are CLEARLY VISIBLE in the image. 
+If the image shows a clean, undamaged room/item, you MUST return an empty array: []
+Do NOT invent damage. Do NOT assume typical issues exist just because of the room type.
+Normal furniture, clean walls, and standard fixtures are NOT damage.
 
 Analyze this image for ANY visible property damage or issues including:
 - Structural: wall cracks, ceiling cracks, dampness, water stains, peeling paint, broken tiles, damaged flooring, holes
@@ -179,37 +197,46 @@ Analyze this image for ANY visible property damage or issues including:
 - Plumbing: visible leaks, water stains, damaged taps, sink/toilet damage
 - Furniture: scratches, dents, broken parts, missing components, wear and tear
 
-For EACH issue found, return a JSON array of objects with these exact fields:
+For EACH visibly detected issue, return a JSON array of objects with these exact fields:
 {
   "type": "short name like Wall Crack",
   "category": "structural" | "electrical" | "doors_windows" | "plumbing" | "furniture",
   "severity": "high" | "medium" | "low",
   "confidence": 0.0 to 1.0,
   "location": "specific location like North Wall, Near Door",
-  "description": "detailed description of what is visible",
+  "description": "detailed description of what is actually visible",
   "recommendation": "what should be done",
   "boundingBox": { "x": 0-100, "y": 0-100, "w": 5-50, "h": 5-50 }
 }
 
-boundingBox values are percentages of image dimensions.
+boundingBox values are PERCENTAGES (0 to 100) of image dimensions. It should tightly bound the damaged area.
 
 If NO significant visible damage is detected, return an empty array: []
-Do NOT invent problems that are not visible. Only report what you can actually see.
+Return ONLY the JSON array.`;
 
-Return ONLY the JSON array, no other text.`;
-
-      const interaction = await client.interactions.create({
+      const response = await client.models.generateContent({
         model: 'gemini-2.5-flash',
-        input: [
-          { text: prompt },
+        contents: [
+          prompt,
           { inlineData: { mimeType: imageData.mimeType, data: imageData.base64 } },
-        ] as any,
-        store: false,
+        ],
+        config: { 
+          responseMimeType: 'application/json',
+          temperature: 0.1
+        },
       });
 
-      const text = interaction.output_text || '[]';
+      const text = response.text || '[]';
       const cleaned = text.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
-      const parsed = JSON.parse(cleaned);
+      let parsed = [];
+      try {
+        parsed = JSON.parse(cleaned);
+      } catch (e) {
+        console.warn("[RentProof AI] Failed to parse JSON response:", text);
+      }
+      
+      console.log(`[RentProof AI] Gemini response received`);
+      console.log(`[RentProof AI] Findings detected: ${Array.isArray(parsed) ? parsed.length : 0}`);
 
       if (Array.isArray(parsed)) {
         for (const item of parsed) {
@@ -229,10 +256,9 @@ Return ONLY the JSON array, no other text.`;
         }
       }
     } catch (err) {
-      console.error(`Vision API error for image ${img.id}:`, err);
-      // Fall back to mock for this image
-      const mockFindings = generateMockFindingsForImage(roomName, img);
-      allFindings.push(...mockFindings);
+      console.error(`[RentProof AI] LIVE Vision API error for image ${img.id}:`, err);
+      // DO NOT SILENTLY FALLBACK TO MOCK HERE. 
+      // If live AI is failing on this image, we skip or alert, but we do not fake the result.
     }
   }
 
