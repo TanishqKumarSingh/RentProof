@@ -1,8 +1,9 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { User } from '@supabase/supabase-js';
-import { supabase } from '../lib/supabase';
+import { supabase, isSupabaseConfigured } from '../lib/supabase';
 import { Profile, RentalAgreement } from '../types';
 import { signIn as authSignIn, signOut as authSignOut } from '../services/authService';
+import { DEMO_TENANT, DEMO_LANDLORD, DEMO_AGREEMENT } from '../lib/demoData';
 
 interface AuthContextType {
   user: User | null;
@@ -10,8 +11,10 @@ interface AuthContextType {
   agreement: RentalAgreement | null;
   loading: boolean;
   signIn: typeof authSignIn;
-  signOut: typeof authSignOut;
+  signOut: () => Promise<any>;
   isLandlord: boolean;
+  isDemoMode: boolean;
+  demoLogin: (role: 'tenant' | 'landlord') => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -21,8 +24,39 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [profile, setProfile] = useState<Profile | null>(null);
   const [agreement, setAgreement] = useState<RentalAgreement | null>(null);
   const [loading, setLoading] = useState(true);
+  const [isDemoMode, setIsDemoMode] = useState(false);
+
+  // Demo login — no Supabase needed
+  const demoLogin = (role: 'tenant' | 'landlord') => {
+    const demoProfile = role === 'tenant' ? DEMO_TENANT : DEMO_LANDLORD;
+    setProfile(demoProfile);
+    setAgreement(DEMO_AGREEMENT);
+    setIsDemoMode(true);
+    // Create a minimal fake User object so ProtectedRoute works
+    setUser({ id: demoProfile.id, email: demoProfile.email } as User);
+  };
+
+  const handleSignOut = async () => {
+    if (isDemoMode) {
+      setUser(null);
+      setProfile(null);
+      setAgreement(null);
+      setIsDemoMode(false);
+      return { error: null };
+    }
+    const result = await authSignOut();
+    setUser(null);
+    setProfile(null);
+    setAgreement(null);
+    return result;
+  };
 
   useEffect(() => {
+    if (!isSupabaseConfigured()) {
+      setLoading(false);
+      return;
+    }
+
     const fetchUserData = async (currentUser: User | null) => {
       setUser(currentUser);
       if (!currentUser) {
@@ -79,8 +113,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     agreement,
     loading,
     signIn: authSignIn,
-    signOut: authSignOut,
-    isLandlord: profile?.role === 'landlord'
+    signOut: handleSignOut,
+    isLandlord: profile?.role === 'landlord',
+    isDemoMode,
+    demoLogin,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

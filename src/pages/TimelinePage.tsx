@@ -7,9 +7,10 @@ import { TimelineFilter } from '../components/timeline/TimelineFilter';
 import { Spinner } from '../components/ui/Spinner';
 import { EmptyState } from '../components/ui/EmptyState';
 import { Clock } from 'lucide-react';
+import { DEMO_EVENTS } from '../lib/demoData';
 
 export default function TimelinePage() {
-  const { agreement } = useAuth();
+  const { agreement, isDemoMode } = useAuth();
   const [events, setEvents] = useState<RentalEvent[]>([]);
   const [loading, setLoading] = useState(true);
   const [filters, setFilters] = useState({
@@ -21,10 +22,17 @@ export default function TimelinePage() {
 
   useEffect(() => {
     async function fetchEvents() {
-      if (!agreement?.id) return;
       setLoading(true);
       try {
-        const data = await getEvents(agreement.id);
+        let data: RentalEvent[];
+        if (isDemoMode) {
+          data = [...DEMO_EVENTS].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+        } else if (agreement?.id) {
+          data = await getEvents(agreement.id);
+        } else {
+          setLoading(false);
+          return;
+        }
         // apply local filters
         let filtered = data;
         if (filters.type) {
@@ -48,7 +56,7 @@ export default function TimelinePage() {
       }
     }
     fetchEvents();
-  }, [agreement, filters]);
+  }, [agreement, filters, isDemoMode]);
 
   return (
     <div className="max-w-4xl mx-auto space-y-8">

@@ -7,6 +7,11 @@ import LoginPage from './pages/LoginPage';
 import DashboardPage from './pages/DashboardPage';
 import TimelinePage from './pages/TimelinePage';
 import PaymentsPage from './pages/PaymentsPage';
+import MaintenancePage from './pages/MaintenancePage';
+import InspectionsPage from './pages/InspectionsPage';
+import ReportsPage from './pages/ReportsPage';
+import DocumentsPage from './pages/DocumentsPage';
+import EvidencePage from './pages/EvidencePage';
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
@@ -48,6 +53,11 @@ export function App() {
             <Route path="/dashboard" element={<DashboardPage />} />
             <Route path="/timeline" element={<TimelinePage />} />
             <Route path="/payments" element={<PaymentsPage />} />
+            <Route path="/maintenance" element={<MaintenancePage />} />
+            <Route path="/inspections" element={<InspectionsPage />} />
+            <Route path="/documents" element={<DocumentsPage />} />
+            <Route path="/evidence" element={<EvidencePage />} />
+            <Route path="/reports" element={<ReportsPage />} />
           </Route>
           
           <Route path="*" element={<Navigate to="/" replace />} />

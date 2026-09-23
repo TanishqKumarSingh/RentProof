@@ -1,6 +1,7 @@
 import React from 'react';
 import { Menu, Bell, CheckCircle } from 'lucide-react';
 import { useLocation } from 'react-router-dom';
+import { useAuth } from '../../contexts/AuthContext';
 
 export interface TopBarProps {
   onToggleSidebar: () => void;
@@ -8,6 +9,7 @@ export interface TopBarProps {
 
 export const TopBar: React.FC<TopBarProps> = ({ onToggleSidebar }) => {
   const location = useLocation();
+  const { profile, signOut } = useAuth();
   
   // Very basic route-to-title mapping
   const getPageTitle = () => {
@@ -39,15 +41,18 @@ export const TopBar: React.FC<TopBarProps> = ({ onToggleSidebar }) => {
 
         <div className="flex items-center gap-3">
           <div className="hidden sm:flex flex-col items-end">
-            <span className="text-sm font-medium text-[#111827]">Sarah Jennings</span>
+            <span className="text-sm font-medium text-[#111827]">{profile?.full_name || 'User'}</span>
             <div className="flex items-center gap-1">
-              <span className="text-xs text-[#667085]">Tenant</span>
+              <span className="text-xs text-[#667085] capitalize">{profile?.role || 'Tenant'}</span>
               <CheckCircle size={12} className="text-[#12B76A]" />
             </div>
           </div>
-          <div className="h-9 w-9 rounded-full bg-[#3157FF] text-white flex items-center justify-center font-semibold shadow-sm border-2 border-[#EFF4FF]">
-            SJ
-          </div>
+          <button 
+            onClick={() => signOut()}
+            className="h-9 px-3 rounded-md bg-[#F7F8FA] hover:bg-gray-200 text-[#111827] text-sm font-medium border border-[#E4E7EC] transition-colors"
+          >
+            Sign Out
+          </button>
         </div>
       </div>
     </header>

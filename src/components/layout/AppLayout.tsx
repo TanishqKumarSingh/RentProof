@@ -2,11 +2,13 @@ import React, { useState } from 'react';
 import { Outlet } from 'react-router-dom';
 import { Sidebar } from './Sidebar';
 import { TopBar } from './TopBar';
+import { AIChatPanel } from '../ai/AIChatPanel';
 import { clsx } from 'clsx';
 import { motion, AnimatePresence } from 'framer-motion';
 
 export const AppLayout: React.FC = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [isAIOpen, setIsAIOpen] = useState(false);
 
   const toggleSidebar = () => {
     setIsSidebarOpen(!isSidebarOpen);
@@ -20,7 +22,7 @@ export const AppLayout: React.FC = () => {
     <div className="min-h-screen bg-[#F7F8FA] flex">
       {/* Desktop Sidebar */}
       <div className="hidden lg:block w-64 fixed inset-y-0 z-30">
-        <Sidebar />
+        <Sidebar onAIClick={() => setIsAIOpen(true)} />
       </div>
 
       {/* Mobile Sidebar Overlay */}
@@ -42,7 +44,7 @@ export const AppLayout: React.FC = () => {
               transition={{ type: "spring", bounce: 0, duration: 0.3 }}
               className="fixed inset-y-0 left-0 w-64 z-50 lg:hidden shadow-2xl"
             >
-              <Sidebar onNavigate={closeSidebar} />
+              <Sidebar onNavigate={closeSidebar} onAIClick={() => { closeSidebar(); setIsAIOpen(true); }} />
             </motion.div>
           </>
         )}
@@ -56,6 +58,9 @@ export const AppLayout: React.FC = () => {
           <Outlet />
         </main>
       </div>
+
+      {/* AI Chat Panel */}
+      <AIChatPanel isOpen={isAIOpen} onClose={() => setIsAIOpen(false)} />
     </div>
   );
 };

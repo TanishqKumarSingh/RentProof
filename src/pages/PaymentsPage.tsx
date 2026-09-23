@@ -9,16 +9,26 @@ import { Spinner } from '../components/ui/Spinner';
 import { EmptyState } from '../components/ui/EmptyState';
 import { Button } from '../components/ui/Button';
 import { CreditCard, Plus } from 'lucide-react';
+import { DEMO_PAYMENTS, getDemoPaymentSummary } from '../lib/demoData';
 
 export default function PaymentsPage() {
-  const { agreement, profile, isLandlord } = useAuth();
+  const { agreement, profile, isLandlord, isDemoMode } = useAuth();
   const [payments, setPayments] = useState<Payment[]>([]);
   const [summary, setSummary] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   const loadData = async () => {
-    if (!agreement?.id) return;
+    if (isDemoMode) {
+      setPayments([...DEMO_PAYMENTS].sort((a, b) => new Date(b.due_date).getTime() - new Date(a.due_date).getTime()));
+      setSummary(getDemoPaymentSummary());
+      setLoading(false);
+      return;
+    }
+    if (!agreement?.id) {
+      setLoading(false);
+      return;
+    }
     setLoading(true);
     try {
       const [p, s] = await Promise.all([
@@ -36,15 +46,46 @@ export default function PaymentsPage() {
 
   useEffect(() => {
     loadData();
-  }, [agreement]);
+  }, [agreement, isDemoMode]);
 
   const handleRecordPayment = async (data: any) => {
+    if (isDemoMode) {
+      // In demo mode, just add to local state
+      const newPayment: Payment = {
+        id: `demo-new-${Date.now()}`,
+        agreement_id: agreement?.id || 'demo',
+        tenant_id: profile?.id || 'demo',
+        amount: data.amount,
+        due_date: new Date().toISOString().split('T')[0],
+        paid_date: new Date().toISOString().split('T')[0],
+        status: 'paid',
+        payment_method: data.payment_method || 'UPI',
+        transaction_ref: data.transaction_ref || `TXN${Date.now()}`,
+        receipt_url: null,
+        notes: data.notes || null,
+        verified_at: null,
+        verified_by: null,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      };
+      setPayments(prev => [newPayment, ...prev]);
+      return;
+    }
     await recordPayment(data);
     await loadData();
   };
 
   const handleVerify = async (paymentId: string) => {
     if (!profile) return;
+    if (isDemoMode) {
+      // In demo mode, update local state
+      setPayments(prev => prev.map(p => 
+        p.id === paymentId 
+          ? { ...p, status: 'verified' as const, verified_at: new Date().toISOString(), verified_by: profile.id }
+          : p
+      ));
+      return;
+    }
     await verifyPayment(paymentId, profile.id);
     await loadData();
   };

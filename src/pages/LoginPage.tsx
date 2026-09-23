@@ -2,14 +2,12 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Shield, Home, Building } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
-import { demoSignIn } from '../services/authService';
 import { Input } from '../components/ui/Input';
 import { Button } from '../components/ui/Button';
-import { isSupabaseConfigured } from '../lib/supabase';
 
 export default function LoginPage() {
   const navigate = useNavigate();
-  const { signIn } = useAuth();
+  const { signIn, demoLogin } = useAuth();
   const [isLogin, setIsLogin] = useState(true);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -26,12 +24,8 @@ export default function LoginPage() {
     setLoading(true);
     setError('');
     try {
-      if (isLogin) {
-        await signIn(formData.email, formData.password);
-      } else {
-        // Mock sign up logic
-        await signIn(formData.email, formData.password);
-      }
+      const { error: authError } = await signIn(formData.email, formData.password);
+      if (authError) throw authError;
       navigate('/dashboard');
     } catch (err: any) {
       setError(err.message || 'Authentication failed');
@@ -40,26 +34,13 @@ export default function LoginPage() {
     }
   };
 
-  const handleDemo = async (role: 'tenant' | 'landlord') => {
-    setLoading(true);
-    try {
-      await demoSignIn(role);
-      navigate('/dashboard');
-    } catch (err) {
-      setError('Demo login failed');
-    } finally {
-      setLoading(false);
-    }
+  const handleDemo = (role: 'tenant' | 'landlord') => {
+    demoLogin(role);
+    navigate('/dashboard');
   };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#F7F8FA] to-[#E4E7EC] flex flex-col items-center justify-center p-4 font-sans">
-      {!isSupabaseConfigured() && (
-        <div className="mb-8 bg-[#F79009]/10 border border-[#F79009] text-[#F79009] p-4 rounded-xl max-w-md w-full text-center text-sm font-medium">
-          Supabase is not configured. Using mock demo mode.
-        </div>
-      )}
-
       <div className="w-full max-w-md bg-white rounded-2xl shadow-xl border border-[#E4E7EC] overflow-hidden">
         <div className="p-8">
           <div className="flex flex-col items-center mb-8">
@@ -141,15 +122,19 @@ export default function LoginPage() {
           <div className="grid grid-cols-2 gap-3">
             <button
               onClick={() => handleDemo('tenant')}
-              className="flex items-center justify-center gap-2 py-3 border border-[#E4E7EC] rounded-xl hover:bg-[#F7F8FA] hover:border-[#3157FF] transition-all text-sm font-medium text-[#111827]"
+              className="flex flex-col items-center justify-center gap-1 py-4 border border-[#E4E7EC] rounded-xl hover:bg-[#EFF4FF] hover:border-[#3157FF] transition-all text-sm font-medium text-[#111827]"
             >
-              <Home size={18} className="text-[#3157FF]" /> Tenant
+              <Home size={22} className="text-[#3157FF]" />
+              <span>Tenant Demo</span>
+              <span className="text-[10px] text-[#667085]">Aarav Sharma</span>
             </button>
             <button
               onClick={() => handleDemo('landlord')}
-              className="flex items-center justify-center gap-2 py-3 border border-[#E4E7EC] rounded-xl hover:bg-[#F7F8FA] hover:border-[#101828] transition-all text-sm font-medium text-[#111827]"
+              className="flex flex-col items-center justify-center gap-1 py-4 border border-[#E4E7EC] rounded-xl hover:bg-[#101828]/5 hover:border-[#101828] transition-all text-sm font-medium text-[#111827]"
             >
-              <Building size={18} className="text-[#101828]" /> Landlord
+              <Building size={22} className="text-[#101828]" />
+              <span>Landlord Demo</span>
+              <span className="text-[10px] text-[#667085]">Rahul Mehta</span>
             </button>
           </div>
         </div>
