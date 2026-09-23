@@ -77,6 +77,32 @@ export default function DashboardPage() {
         </div>
       </div>
 
+      {/* AI Inspection CTA */}
+      <div className="bg-gradient-to-r from-[#111827] to-[#1E293B] rounded-2xl p-6 text-white flex flex-col md:flex-row items-center justify-between gap-6 shadow-lg">
+        <div>
+          <div className="flex items-center gap-2 mb-2">
+            <span className="bg-[#3157FF] px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider">New</span>
+            <h2 className="text-xl font-bold">AI Property Inspection</h2>
+          </div>
+          <p className="text-gray-300 text-sm max-w-xl">
+            RentProof now uses AI to document and analyze your property's condition. 
+            Compare move-in and move-out records instantly to resolve deposit disputes.
+          </p>
+        </div>
+        <div className="flex-shrink-0 flex items-center gap-4">
+          <div className="text-center hidden sm:block">
+            <div className="text-2xl font-black text-[#12B76A]">78<span className="text-sm font-normal text-gray-400">/100</span></div>
+            <div className="text-[10px] text-gray-400 uppercase tracking-wider">Latest Score</div>
+          </div>
+          <a 
+            href="/ai-inspect"
+            className="bg-[#3157FF] hover:bg-blue-600 text-white px-6 py-3 rounded-xl font-bold text-sm transition-colors whitespace-nowrap shadow-lg shadow-[#3157FF]/30"
+          >
+            Start AI Inspection
+          </a>
+        </div>
+      </div>
+
       {!isLandlord ? (
         <>
           {/* ═══════ TENANT VIEW ═══════ */}
